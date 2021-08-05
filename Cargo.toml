@@ -1,0 +1,21 @@
+[package]
+name = "winit-webview"
+version = "0.1.0"
+authors = ["Olivia Trewin <trewinolivia@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+winit = "^0.24"
+paste = "^1.0.5"
+
+[dev-dependencies]
+winit = "^0.24"
+mime_guess = "^2.0.3"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "^0.2.7"
+core-graphics = "^0.22.2"
+objc-foundation = "^0.1.1"
+block = "^0.1.6"
