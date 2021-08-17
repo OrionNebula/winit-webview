@@ -220,6 +220,9 @@ def_class! {
         }
 
         fn webView(this, _web_view: *mut Object, startURLSchemeTask task: *mut Object) {
+            const URL_ERROR_NOT_FOUND: isize = -1100;
+            const URL_ERROR_UNKNOWN: isize = -1;
+
             use std::io::Read;
 
             unsafe {
@@ -231,10 +234,9 @@ def_class! {
                 let request_handler: *mut c_void = *this.get_ivar("request_handler");
                 let request_handler = &mut *(request_handler as *mut K);
 
-                match request_handler.handle_platform_request(PlatformRequest { uri: path.as_str() }) {
-                    Some(request::Response { mut body, mime_type }) => {
-                        let mut buffer = Vec::new();
-                        let content_len = body.read_to_end(&mut buffer).expect("TODO: Return 503");
+                let error_code = if let Some(request::Response { mut body, mime_type }) = request_handler.handle_platform_request(PlatformRequest { uri: path.as_str() }) {
+                    let mut buffer = Vec::new();
+                    if let Ok(content_len) = body.read_to_end(&mut buffer) {
                         let data = NSData::from_vec(buffer);
 
                         let url: *mut Object = msg_send![class!(NSURL), URLWithString: url];
@@ -246,12 +248,24 @@ def_class! {
 
                         let _: () = msg_send![task, didReceiveData: data];
                         let _: () = msg_send![task, didFinish];
+
+                        return;
                     }
-                    None => {
-                        // IDK lol
-                    }
-                }
+
+                    URL_ERROR_UNKNOWN
+                } else {
+                    URL_ERROR_NOT_FOUND
+                };
+
+                let domain = NSString::from_str("NSURLErrorDomain");
+                let error: *mut Object = msg_send![class!(NSError), errorWithDomain: domain code: error_code userInfo: std::ptr::null_mut::<Object>()];
+
+                let _: () = msg_send![task, didFailWithError: error];
             }
+        }
+
+        fn webView(_this, _web_view: *mut Object, stopUrlSchemeTask _task: *mut Object) {
+            return;
         }
     }
 }
